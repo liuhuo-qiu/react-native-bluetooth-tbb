@@ -598,7 +598,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
 
                 if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
                     final int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR);
-                    final int prevState	= intent.getIntExtra(BluetoothDevice.EXTRA_PREVIOUS_BOND_STATE, BluetoothDevice.ERROR);
+                    final int prevState = intent.getIntExtra(BluetoothDevice.EXTRA_PREVIOUS_BOND_STATE, BluetoothDevice.ERROR);
 
                     if (state == BluetoothDevice.BOND_BONDED && prevState == BluetoothDevice.BOND_BONDING) {
                         if (D) Log.d(TAG, "Device paired");
@@ -703,4 +703,50 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
 
         mReactContext.registerReceiver(bluetoothStateReceiver, intentFilter);
     }
+
+  /**
+   * 把16进制转成bytes写进蓝牙设备
+   * 
+   * @param hexString 要写的 16 进制文件
+   * @param promise   返回的 Promise
+   */
+  @ReactMethod
+  public void writeHexToDevice(String hexString, Promise promise) {
+      mBluetoothService.write(hexStringToBytes(hexString));
+      promise.resolve(true);
+  }
+
+  @ReactMethod
+  /**
+   * 把文本转成bytes写进蓝牙设备
+   * 
+   * @param Text    要写的文本
+   * @param promise 返回的 Promise
+   */
+  public void writeTextToDevice(String Text, Promise promise) {
+      byte[] send;
+      try {
+          send = Text.getBytes("GB2312");
+      } catch (Exception e) {
+          send = Text.getBytes();
+      }
+      mBluetoothService.write(send);
+      promise.resolve(true);
+  }
+
+  /** 在最后添加下面两个方法 */
+  public static byte[] hexStringToBytes(String hexString) {
+      hexString = hexString.toLowerCase();
+      String[] hexStrings = hexString.split(" ");
+      byte[] bytes = new byte[hexStrings.length];
+      for (int i = 0; i < hexStrings.length; i++) {
+          char[] hexChars = hexStrings[i].toCharArray();
+          bytes[i] = (byte) (charToByte(hexChars[0]) << 4 | charToByte(hexChars[1]));
+      }
+      return bytes;
+  }
+
+  private static byte charToByte(char c) {
+      return (byte) "0123456789abcdef".indexOf(c);
+  }
 }
